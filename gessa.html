@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avril Lavigne - Album GIF Dex</title>
+
+    <style>
+        /* --- Start of CSS --- */
+        body {
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #e6007e; /* Pinkish color */
+            text-shadow: 1px 1px 2px #555;
+            margin-bottom: 20px;
+        }
+
+        .pokedex-container {
+            display: flex;
+            width: 90%;
+            max-width: 900px;
+            height: 60vh;
+            min-height: 500px;
+            background-color: #fff;
+            border: 5px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            overflow: hidden; /* Prevent content spill */
+        }
+
+        /* Left Pane: Album List */
+        .album-list-pane {
+            width: 35%;
+            background-color: #e9e9e9;
+            border-right: 3px solid #333;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .album-list-pane h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #333;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+
+        .album-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto; /* Make list scrollable */
+            flex-grow: 1; /* Take remaining space */
+        }
+
+        .album-list li {
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            background-color: #fdfdfd;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            font-weight: bold;
+        }
+
+        .album-list li:hover {
+            background-color: #d4f0ff; /* Light blue hover */
+        }
+
+        .album-list li.active {
+            background-color: #e6007e; /* Pinkish active */
+            color: white;
+            border-color: #a00058;
+            transform: scale(1.02);
+        }
+
+        .album-list li.loading {
+            font-style: italic;
+            color: #777;
+            cursor: default;
+            background-color: transparent;
+            border: none;
+        }
+
+        /* Right Pane: Album Details */
+        .album-details-pane {
+            width: 65%;
+            padding: 20px;
+            background-color: #f8f8f8;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Scroll if content overflows */
+        }
+
+        .album-details {
+            text-align: center;
+        }
+
+        #album-title {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.8em;
+        }
+
+        .gif-container {
+            width: 80%;
+            max-width: 300px; /* Limit GIF size */
+            height: auto; /* Maintain aspect ratio */
+            margin: 15px auto;
+            border: 3px solid #ccc;
+            background-color: #eee; /* Background while loading */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 150px; /* Ensure space even if GIF fails */
+        }
+
+        #album-gif {
+            max-width: 100%;
+            max-height: 250px; /* Limit height too */
+            display: block;
+            object-fit: contain; /* Fit within container without stretching */
+        }
+
+        #album-year {
+            font-size: 1.1em;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .album-details h3 {
+            margin-top: 25px;
+            color: #e6007e;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 5px;
+            text-align: left;
+        }
+
+        .song-list {
+            list-style: decimal; /* Numbered list */
+            padding-left: 25px; /* Indent numbers */
+            margin: 10px 0 0 0;
+            text-align: left;
+            font-size: 0.95em;
+            color: #444;
+            max-height: 250px; /* Make song list scrollable if very long */
+            overflow-y: auto;
+            padding-right: 10px; /* Space for scrollbar */
+        }
+
+        .song-list li {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        /* Basic Responsive */
+        @media (max-width: 768px) {
+            .pokedex-container {
+                flex-direction: column;
+                height: auto; /* Adjust height */
+                min-height: 90vh;
+            }
+
+            .album-list-pane,
+            .album-details-pane {
+                width: 100%;
+                border-right: none;
+                border-bottom: 3px solid #333;
+            }
+
+            .album-list-pane {
+               height: 25vh; /* Give list a fixed height */
+               min-height: 200px;
+               border-bottom: 3px solid #333;
+            }
+
+            .album-details-pane {
+               height: auto; /* Allow details to take needed height */
+               flex-grow: 1;
+            }
+
+            .gif-container {
+                max-width: 250px;
+            }
+             #album-gif {
+                max-height: 200px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+        /* --- End of CSS --- */
+    </style>
+
+</head>
+<body>
+
+    <h1>Avril Lavigne - Album GIF Dex</h1>
+
+    <div class="pokedex-container">
+        <!-- Album List Pane -->
+        <div class="album-list-pane">
+            <h2>Albums</h2>
+            <ul id="album-list" class="album-list">
+                <!-- Album names will be populated by JavaScript -->
+                <li class="loading">Loading albums...</li>
+            </ul>
+        </div>
+
+        <!-- Album Details Pane -->
+        <div class="album-details-pane">
+            <div id="album-details" class="album-details">
+                <!-- Default Message / Content updated by JavaScript -->
+                <h2 id="album-title">Select an Album</h2>
+                <div class="gif-container">
+                   <img id="album-gif" src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3hkY3Q4bm5tMTU5a2VoNmJpNnVnMHg0emM2eGZpajVodm11NzFmdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/UTBMdkrDUzVMQ/giphy.gif" alt="Avril Lavigne Album Art GIF">
+                 </div>
+                <p id="album-year">Year: ---</p>
+                <h3>Tracklist:</h3>
+                <ul id="album-songs" class="song-list">
+                    <li>Select an album from the list to see details.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Start of JavaScript ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Album Data ---
+            const albums = [
+                {
+                    id: 'let-go',
+                    title: 'Let Go',
+                    year: 2002,
+                    // Example GIF - find more specific ones if needed!
+                    gifUrl: 'https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3hkY3Q4bm5tMTU5a2VoNmJpNnVnMHg0emM2eGZpajVodm11NzFmdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/UTBMdkrDUzVMQ/giphy.gif',
+                    songs: [
+                        "Losing Grip", "Complicated", "Sk8er Boi", "I'm with You",
+                        "Mobile", "Unwanted", "Tomorrow", "Anything but Ordinary",
+                        "Things I'll Never Say", "My World", "Nobody's Fool",
+                        "Too Much to Ask", "Naked"
+                    ]
+                },
+                {
+                    id: 'under-my-skin',
+                    title: 'Under My Skin',
+                    year: 2004,
+                    gifUrl: 'https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZnczMW04cjU2NmRkMzA5aWpkamJtdnU2cnFwdnF0azVucmNjcW52ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Rj8ggS0lf6N4Q/giphy.gif',
+                    songs: [
+                        "Take Me Away", "Together", "Don't Tell Me", "He Wasn't",
+                        "How Does It Feel", "My Happy Ending", "Nobody's Home",
+                        "Forgotten", "Who Knows", "Fall to Pieces", "Freak Out",
+                        "Slipped Away"
+                    ]
+                },
+                {
+                    id: 'the-best-damn-thing',
+                    title: 'The Best Damn Thing',
+                    year: 2007,
+                    gifUrl: 'https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExd29ma2Y5ZnM1a25sN2QyZmN3N3dxczRvbGNhc252b3BocHNoZzZyOSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/S3F8kkG2C5QoU/giphy.gif',
+                    songs: [
+                        "Girlfriend", "I Can Do Better", "Runaway", "The Best Damn Thing",
+                        "When You're Gone", "Everything Back But You", "Hot",
+                        "Innocence", "I Don't Have to Try", "One of Those Girls",
+                        "Contagious", "Keep Holding On"
+                    ]
+                },
+                 {
+                    id: 'goodbye-lullaby',
+                    title: 'Goodbye Lullaby',
+                    year: 2011,
+                    gifUrl: 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExb2N0anI4ZjI1dWRkNDh0bWRnbHZycTZhc3E3aWZsdmJzZW11eTd6ZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/mCRdlHkfArH4k/giphy.gif',
+                    songs: [
+                        "Black Star", "What the Hell", "Push", "Wish You Were Here",
+                        "Smile", "Stop Standing There", "I Love You", "Everybody Hurts",
+                        "Not Enough", "4 Real", "Darlin", "Remember When",
+                        "Goodbye", "Alice" // Often included as track 14
+                    ]
+                },
+                {
+                    id: 'avril-lavigne',
+                    title: 'Avril Lavigne',
+                    year: 2013,
+                    gifUrl: 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExNXFmZ29kMWFwNzl1ZW53dmpiaGJ4YWk3NzRnc3Rvc2h3enN2ZDU5MyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/d2YVk2ZRuQuqvpHq/giphy.gif',
+                    songs: [
+                        "Rock n Roll", "Here's to Never Growing Up", "17", "Bitchin' Summer",
+                        "Let Me Go (feat. Chad Kroeger)", "Give You What You Like", "Bad Girl (feat. Marilyn Manson)",
+                        "Hello Kitty", "You Ain't Seen Nothin' Yet", "Sippin' on Sunshine",
+                        "Hello Heartache", "Falling Fast", "Hush Hush"
+                    ]
+                },
+                {
+                    id: 'head-above-water',
+                    title: 'Head Above Water',
+                    year: 2019,
+                    gifUrl: 'https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNzFkZDJjcjNtbjE5YWl2NG94bnczMGcycG43dGpxZ3o1eGFsZ3RkbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xUA7bjkEeE4fkj3A0o/giphy.gif', // Generic 'Avril looking serious' GIF
+                    songs: [
+                        "Head Above Water", "Birdie", "I Fell in Love with the Devil", "Tell Me It's Over",
+                        "Dumb Blonde (feat. Nicki Minaj)", "It Was in Me", "Souvenir",
+                        "Crush", "Goddess", "Bigger Wow", "Love Me Insane", "Warrior"
+                    ]
+                },
+                 {
+                    id: 'love-sux',
+                    title: 'Love Sux',
+                    year: 2022,
+                    gifUrl: 'https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMXBpd25qYzFmZnVzcHpxMmZyYnNwd3U4amZvbzZuaTFmcmtlYXh1dCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8TTgeE990m1yhAx7g4/giphy.gif',
+                    songs: [
+                        "Cannonball", "Bois Lie (feat. Machine Gun Kelly)", "Bite Me", "Love It When You Hate Me (feat. Blackbear)",
+                        "Love Sux", "Kiss Me like the World Is Ending", "Avalanche", "Déjà Vu",
+                        "F.U.", "All I Wanted (feat. Mark Hoppus)", "Dare to Love Me", "Break of a Heartache"
+                    ]
+                },
+                // Add more albums here if needed
+            ];
+
+            // --- DOM Elements ---
+            const albumListUl = document.getElementById('album-list');
+            const albumTitleH2 = document.getElementById('album-title');
+            const albumGifImg = document.getElementById('album-gif');
+            const albumYearP = document.getElementById('album-year');
+            const albumSongsUl = document.getElementById('album-songs');
+            const defaultGif = 'https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExY3hkY3Q4bm5tMTU5a2VoNmJpNnVnMHg0emM2eGZpajVodm11NzFmdCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/UTBMdkrDUzVMQ/giphy.gif'; // Fallback GIF
+
+            // --- Functions ---
+
+            // Function to display album details
+            function displayAlbumDetails(album) {
+                albumTitleH2.textContent = album.title;
+                albumGifImg.src = album.gifUrl || defaultGif; // Use default if no GIF URL
+                albumGifImg.alt = `${album.title} era GIF`;
+                albumYearP.textContent = `Year: ${album.year}`;
+
+                // Populate song list
+                albumSongsUl.innerHTML = ''; // Clear previous songs
+                if (album.songs && album.songs.length > 0) {
+                    album.songs.forEach(song => {
+                        const li = document.createElement('li');
+                        li.textContent = song;
+                        albumSongsUl.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    li.textContent = 'No tracklist available.';
+                    albumSongsUl.appendChild(li);
+                }
+            }
+
+            // Function to populate the album list
+            function populateAlbumList() {
+                albumListUl.innerHTML = ''; // Clear loading message
+                albums.forEach((album, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = album.title;
+                    li.dataset.index = index; // Store index to easily find album data
+
+                    li.addEventListener('click', () => {
+                        // Remove active class from previously selected item
+                        const currentActive = albumListUl.querySelector('.active');
+                        if (currentActive) {
+                            currentActive.classList.remove('active');
+                        }
+                        // Add active class to clicked item
+                        li.classList.add('active');
+
+                        // Display details for the clicked album
+                        const selectedAlbum = albums[index];
+                        displayAlbumDetails(selectedAlbum);
+                    });
+
+                    albumListUl.appendChild(li);
+                });
+            }
+
+            // --- Initialization ---
+            populateAlbumList();
+
+            // Optional: Display the first album by default on load (currently commented out)
+            // if (albums.length > 0) {
+            //    displayAlbumDetails(albums[0]);
+            //    const firstListItem = albumListUl.querySelector('li');
+            //    if (firstListItem) {
+            //         firstListItem.classList.add('active');
+            //    }
+            // } else {
+            if (albums.length === 0) { // Show message only if no albums are defined
+                albumTitleH2.textContent = "No Albums Found";
+                albumYearP.textContent = "Year: ---";
+                albumSongsUl.innerHTML = '<li>Please add album data to the script.</li>';
+            }
+
+        }); // End DOMContentLoaded
+        // --- End of JavaScript ---
+    </script>
+
+</body>
+</html>
