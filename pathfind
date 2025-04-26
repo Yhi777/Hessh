@@ -1,0 +1,85 @@
+--// Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local PathfindingService = game:GetService("PathfindingService")
+
+--// Constants
+local TARGET_RADIUS = 1000
+local PATH_REFRESH_TIME = 0.2
+
+--// State
+local localPlayer = Players.LocalPlayer
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local hrp = character:WaitForChild("HumanoidRootPart")
+local moving = false
+local currentPath = nil
+
+--// Utility
+local function isAlive(plr)
+	if not plr or not plr.Character then return false end
+	local hum = plr.Character:FindFirstChildWhichIsA("Humanoid")
+	return hum and hum.Health > 0
+end
+
+local function getNearestPlayer(radius)
+	local closest, minDist = nil, nil
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= localPlayer and isAlive(plr) then
+			local oHRP = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+			if oHRP then
+				local dist = (oHRP.Position - hrp.Position).Magnitude
+				if dist <= radius and (not minDist or dist < minDist) then
+					closest = plr
+					minDist = dist
+				end
+			end
+		end
+	end
+	return closest
+end
+
+--// Movement
+local function followPath(path)
+	if not path then return end
+	moving = true
+	for _, waypoint in ipairs(path:GetWaypoints()) do
+		if humanoid and humanoid.Health > 0 then
+			humanoid:MoveTo(waypoint.Position)
+			local reached = humanoid.MoveToFinished:Wait()
+			if not reached then break end
+		end
+	end
+	moving = false
+end
+
+--// Main Loop
+task.spawn(function()
+	while true do
+		task.wait(PATH_REFRESH_TIME)
+
+		if not character or not humanoid or humanoid.Health <= 0 then continue end
+
+		local target = getNearestPlayer(TARGET_RADIUS)
+		if target and target.Character then
+			local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+			if targetHRP then
+				local path = PathfindingService:CreatePath({
+					AgentRadius = 2,
+					AgentHeight = 5,
+					AgentCanJump = true,
+					AgentCanClimb = true
+				})
+				path:ComputeAsync(hrp.Position, targetHRP.Position)
+				if path.Status == Enum.PathStatus.Complete then
+					currentPath = path
+					if not moving then
+						task.spawn(function()
+							followPath(currentPath)
+						end)
+					end
+				end
+			end
+		end
+	end
+end)
