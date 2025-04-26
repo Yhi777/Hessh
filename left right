@@ -1,0 +1,160 @@
+--// Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+--// Constants
+local DODGE_RADIUS = 6
+local SLIDE_SPEED = 28
+local SLIDE_TIME = 0.2
+local COOLDOWN_TIME = 0.2
+
+--// State
+local localPlayer = Players.LocalPlayer
+local cooling = false
+
+--// Utility
+local function isAlive(plr)
+	if not plr or not plr.Character then return false end
+	local hum = plr.Character:FindFirstChildWhichIsA("Humanoid")
+	return hum and hum.Health > 0
+end
+
+local function getNearestPlayer(radius)
+	local myHRP = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if not myHRP then return nil end
+
+	local closest, minDist = nil, nil
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= localPlayer and isAlive(plr) then
+			local oHRP = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+			if oHRP then
+				local dist = (oHRP.Position - myHRP.Position).Magnitude
+				if dist <= radius and (not minDist or dist < minDist) then
+					closest = plr
+					minDist = dist
+				end
+			end
+		end
+	end
+	return closest
+end
+
+local function doSlide(dir)
+	cooling = true
+	local hrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then cooling = false return end
+
+	local bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(1e6, 0, 1e6)
+	bv.Velocity = dir.Unit * SLIDE_SPEED
+	bv.Parent = hrp
+
+	task.wait(SLIDE_TIME)
+	bv:Destroy()
+
+	task.delay(COOLDOWN_TIME, function()
+		cooling = false
+	end)
+end
+
+local function getFacingDirection(hrp)
+	return hrp.CFrame.LookVector
+end
+
+local function isBackTurned(enemyHRP, myHRP)
+	local enemyLook = getFacingDirection(enemyHRP)
+	local toMe = (myHRP.Position - enemyHRP.Position).Unit
+	return enemyLook:Dot(toMe) < -0.5
+end
+
+local function isTurningToFace(enemyHRP, myHRP, lastLookVec)
+	local newLook = getFacingDirection(enemyHRP)
+	local toMe = (myHRP.Position - enemyHRP.Position).Unit
+	return newLook:Dot(toMe) > lastLookVec:Dot(toMe)
+end
+
+local lastFacings = {}
+
+--// Move Toward Nearest Player Loop
+RunService.RenderStepped:Connect(function()
+	local char = localPlayer.Character
+	if not char then return end
+	local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not hrp then return end
+
+	local target = getNearestPlayer(1000)
+	if target and target.Character then
+		local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+		if targetHRP then
+			local moveDir = (targetHRP.Position - hrp.Position).Unit
+			humanoid:Move(moveDir, false)
+		end
+	end
+end)
+
+--// Main Loop (Dodge)
+RunService.Heartbeat:Connect(function()
+	if not localPlayer.Character or cooling then return end
+
+	local char = localPlayer.Character
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local closeThreat = getNearestPlayer(DODGE_RADIUS)
+	if closeThreat then
+		local threatHRP = closeThreat.Character and closeThreat.Character:FindFirstChild("HumanoidRootPart")
+		if threatHRP then
+			local dir = (threatHRP.Position - hrp.Position)
+			if dir.Magnitude > 0 then
+				local lateral = Vector3.new(-dir.Unit.Z, 0, dir.Unit.X)
+				doSlide(lateral)
+			end
+		end
+	end
+end)
+
+--// Animation Detection, Counter, Turning Dodge
+RunService.Stepped:Connect(function()
+	local char = localPlayer.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= localPlayer and isAlive(plr) then
+			local enemyChar = plr.Character
+			local enemyHRP = enemyChar and enemyChar:FindFirstChild("HumanoidRootPart")
+			local enemyHum = enemyChar and enemyChar:FindFirstChildWhichIsA("Humanoid")
+			if enemyHRP and enemyHum then
+				local dist = (enemyHRP.Position - hrp.Position).Magnitude
+
+				local oldLook = lastFacings[plr] or getFacingDirection(enemyHRP)
+				lastFacings[plr] = getFacingDirection(enemyHRP)
+
+				if dist <= 9 then
+					local animator = enemyHum:FindFirstChildOfClass("Animator")
+					if animator then
+						for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+							if track.IsPlaying then
+								local lateral = Vector3.new(-oldLook.Z, 0, oldLook.X)
+								doSlide(lateral)
+								break
+							end
+						end
+					end
+				end
+
+				if dist <= 20 and isBackTurned(enemyHRP, hrp) then
+					local moveDir = (enemyHRP.Position - hrp.Position).Unit
+					localPlayer.Character:FindFirstChildWhichIsA("Humanoid"):Move(moveDir, false)
+				end
+
+				if dist <= 12 and isTurningToFace(enemyHRP, hrp, oldLook) then
+					local evadeDir = Vector3.new(-oldLook.Z, 0, oldLook.X)
+					doSlide(evadeDir)
+				end
+			end
+		end
+	end
+end)
