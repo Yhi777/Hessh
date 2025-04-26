@@ -1,85 +1,64 @@
---// Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local PathfindingService = game:GetService("PathfindingService")
+local RunService = game:GetService("RunService")
 
---// Constants
-local TARGET_RADIUS = 1000
-local PATH_REFRESH_TIME = 0.2
-
---// State
 local localPlayer = Players.LocalPlayer
 local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local hrp = character:WaitForChild("HumanoidRootPart")
-local moving = false
-local currentPath = nil
 
---// Utility
-local function isAlive(plr)
-	if not plr or not plr.Character then return false end
-	local hum = plr.Character:FindFirstChildWhichIsA("Humanoid")
-	return hum and hum.Health > 0
-end
+local pathParams = {
+	AgentRadius = 2,
+	AgentHeight = 5,
+	AgentCanJump = true,
+	AgentCanClimb = true,
+	WaypointSpacing = 2,
+}
+local path = PathfindingService:CreatePath(pathParams)
 
-local function getNearestPlayer(radius)
-	local closest, minDist = nil, nil
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= localPlayer and isAlive(plr) then
-			local oHRP = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-			if oHRP then
-				local dist = (oHRP.Position - hrp.Position).Magnitude
-				if dist <= radius and (not minDist or dist < minDist) then
-					closest = plr
-					minDist = dist
-				end
+local function getNearestPlayer()
+	local closest, minDist = nil, math.huge
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= localPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local theirHRP = plr.Character.HumanoidRootPart
+			local dist = (theirHRP.Position - hrp.Position).Magnitude
+			if dist < minDist and dist <= 1000 then
+				closest = theirHRP
+				minDist = dist
 			end
 		end
 	end
 	return closest
 end
 
---// Movement
-local function followPath(path)
-	if not path then return end
-	moving = true
-	for _, waypoint in ipairs(path:GetWaypoints()) do
-		if humanoid and humanoid.Health > 0 then
+local function moveToTarget(targetPos)
+	path:ComputeAsync(hrp.Position, targetPos)
+
+	if path.Status == Enum.PathStatus.Success then
+		local waypoints = path:GetWaypoints()
+		for _, waypoint in ipairs(waypoints) do
+			if waypoint.Action == Enum.PathWaypointAction.Jump then
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+
 			humanoid:MoveTo(waypoint.Position)
 			local reached = humanoid.MoveToFinished:Wait()
-			if not reached then break end
-		end
-	end
-	moving = false
-end
-
---// Main Loop
-task.spawn(function()
-	while true do
-		task.wait(PATH_REFRESH_TIME)
-
-		if not character or not humanoid or humanoid.Health <= 0 then continue end
-
-		local target = getNearestPlayer(TARGET_RADIUS)
-		if target and target.Character then
-			local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
-			if targetHRP then
-				local path = PathfindingService:CreatePath({
-					AgentRadius = 2,
-					AgentHeight = 5,
-					AgentCanJump = true,
-					AgentCanClimb = true
-				})
-				path:ComputeAsync(hrp.Position, targetHRP.Position)
-				if path.Status == Enum.PathStatus.Complete then
-					currentPath = path
-					if not moving then
-						task.spawn(function()
-							followPath(currentPath)
-						end)
-					end
-				end
+			if not reached then
+				break
 			end
 		end
+	else
+		warn("Tangina, walang matinong path.")
+	end
+end
+
+-- Recalculate path every few seconds
+task.spawn(function()
+	while true do
+		local target = getNearestPlayer()
+		if target then
+			moveToTarget(target.Position)
+		end
+		task.wait(0.0)
 	end
 end)
