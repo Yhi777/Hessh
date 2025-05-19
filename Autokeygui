@@ -1,0 +1,188 @@
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "AutoKeyGui"
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 320, 0, 330)
+Frame.Position = UDim2.new(0.5, -160, 0.5, -165)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.Active = true
+Frame.Draggable = true
+
+local TextBox = Instance.new("TextBox", Frame)
+TextBox.PlaceholderText = "Enter keys like [qe] | a b"
+TextBox.Size = UDim2.new(1, -20, 0, 60)
+TextBox.Position = UDim2.new(0, 10, 0, 10)
+TextBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TextBox.TextColor3 = Color3.new(1, 1, 1)
+TextBox.TextScaled = true
+TextBox.ClearTextOnFocus = false
+TextBox.MultiLine = true
+
+local SpeedLabelNote = Instance.new("TextLabel", Frame)
+SpeedLabelNote.Size = UDim2.new(1, -20, 0, 20)
+SpeedLabelNote.Position = UDim2.new(0, 10, 0, 75)
+SpeedLabelNote.BackgroundTransparency = 1
+SpeedLabelNote.TextColor3 = Color3.new(1, 1, 1)
+SpeedLabelNote.TextScaled = true
+SpeedLabelNote.Text = "Note Speed: 190"
+
+local SpeedUpNote = Instance.new("TextButton", Frame)
+SpeedUpNote.Text = "Note++"
+SpeedUpNote.Size = UDim2.new(0.5, -15, 0, 30)
+SpeedUpNote.Position = UDim2.new(0, 10, 0, 100)
+SpeedUpNote.BackgroundColor3 = Color3.fromRGB(0, 130, 255)
+SpeedUpNote.TextColor3 = Color3.new(1, 1, 1)
+SpeedUpNote.TextScaled = true
+
+local SpeedDownNote = Instance.new("TextButton", Frame)
+SpeedDownNote.Text = "Note--"
+SpeedDownNote.Size = UDim2.new(0.5, -15, 0, 30)
+SpeedDownNote.Position = UDim2.new(0.5, 5, 0, 100)
+SpeedDownNote.BackgroundColor3 = Color3.fromRGB(255, 130, 0)
+SpeedDownNote.TextColor3 = Color3.new(1, 1, 1)
+SpeedDownNote.TextScaled = true
+
+local SpeedLabelSpecial = Instance.new("TextLabel", Frame)
+SpeedLabelSpecial.Size = UDim2.new(1, -20, 0, 20)
+SpeedLabelSpecial.Position = UDim2.new(0, 10, 0, 135)
+SpeedLabelSpecial.BackgroundTransparency = 1
+SpeedLabelSpecial.TextColor3 = Color3.new(1, 1, 1)
+SpeedLabelSpecial.TextScaled = true
+SpeedLabelSpecial.Text = "Special Speed: 275"
+
+local SpeedUpSpecial = Instance.new("TextButton", Frame)
+SpeedUpSpecial.Text = "Special++"
+SpeedUpSpecial.Size = UDim2.new(0.5, -15, 0, 30)
+SpeedUpSpecial.Position = UDim2.new(0, 10, 0, 160)
+SpeedUpSpecial.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+SpeedUpSpecial.TextColor3 = Color3.new(1, 1, 1)
+SpeedUpSpecial.TextScaled = true
+
+local SpeedDownSpecial = Instance.new("TextButton", Frame)
+SpeedDownSpecial.Text = "Special--"
+SpeedDownSpecial.Size = UDim2.new(0.5, -15, 0, 30)
+SpeedDownSpecial.Position = UDim2.new(0.5, 5, 0, 160)
+SpeedDownSpecial.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+SpeedDownSpecial.TextColor3 = Color3.new(1, 1, 1)
+SpeedDownSpecial.TextScaled = true
+
+local StartButton = Instance.new("TextButton", Frame)
+StartButton.Text = "Start"
+StartButton.Size = UDim2.new(0.5, -15, 0, 40)
+StartButton.Position = UDim2.new(0, 10, 0, 200)
+StartButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+StartButton.TextColor3 = Color3.new(1, 1, 1)
+StartButton.TextScaled = true
+
+local StopButton = Instance.new("TextButton", Frame)
+StopButton.Text = "Stop"
+StopButton.Size = UDim2.new(0.5, -15, 0, 40)
+StopButton.Position = UDim2.new(0.5, 5, 0, 200)
+StopButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+StopButton.TextColor3 = Color3.new(1, 1, 1)
+StopButton.TextScaled = true
+
+-- Logic
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local noteSpeed = 190
+local specialSpeed = 275
+local running = false
+
+local function pressKey(char)
+	local success, keyCode = pcall(function()
+		if char == " " then
+			return Enum.KeyCode.Space
+		elseif char == "|" then
+			return Enum.KeyCode.BackSlash
+		else
+			return Enum.KeyCode[char:upper()]
+		end
+	end)
+	if success and keyCode then
+		VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+		task.wait(0.16)
+		VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+	end
+end
+
+local function parseInput(text)
+	local result = {}
+	local i = 1
+	while i <= #text do
+		local char = text:sub(i, i)
+		if char == "[" then
+			local group = {}
+			i += 1
+			while i <= #text and text:sub(i, i) ~= "]" do
+				table.insert(group, text:sub(i, i))
+				i += 1
+			end
+			table.insert(result, group)
+		else
+			table.insert(result, {char})
+		end
+		i += 1
+	end
+	return result
+end
+
+local function isSpecial(char)
+	return char == " " or char == "|"
+end
+
+SpeedUpNote.MouseButton1Click:Connect(function()
+	noteSpeed = math.min(10000, noteSpeed + 1)
+	SpeedLabelNote.Text = "Note Speed: " .. noteSpeed
+end)
+
+SpeedDownNote.MouseButton1Click:Connect(function()
+	noteSpeed = math.max(1, noteSpeed - 1)
+	SpeedLabelNote.Text = "Note Speed: " .. noteSpeed
+end)
+
+SpeedUpSpecial.MouseButton1Click:Connect(function()
+	specialSpeed = math.min(10000, specialSpeed + 1)
+	SpeedLabelSpecial.Text = "Special Speed: " .. specialSpeed
+end)
+
+SpeedDownSpecial.MouseButton1Click:Connect(function()
+	specialSpeed = math.max(1, specialSpeed - 1)
+	SpeedLabelSpecial.Text = "Special Speed: " .. specialSpeed
+end)
+
+StartButton.MouseButton1Click:Connect(function()
+	if running then return end
+	running = true
+	local sequence = parseInput(TextBox.Text)
+
+	coroutine.wrap(function()
+		while running do
+			for _, group in ipairs(sequence) do
+				if not running then break end
+				local isGroupSpecial = true
+				local specialCount = 0
+
+				for _, key in ipairs(group) do
+					if not isSpecial(key) then
+						isGroupSpecial = false
+					else
+						specialCount += 1
+					end
+					coroutine.wrap(function()
+						pressKey(key)
+					end)()
+				end
+
+				if isGroupSpecial then
+					task.wait((specialSpeed * specialCount) / 1000)
+				else
+					task.wait(noteSpeed / 1000)
+				end
+			end
+		end
+	end)()
+end)
+
+StopButton.MouseButton1Click:Connect(function()
+	running = false
+end)
